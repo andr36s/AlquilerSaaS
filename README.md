@@ -4,7 +4,7 @@
 
 ![Node.js](https://img.shields.io/badge/Node.js-20.x-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.x-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-7.x-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Estado-En%20Desarrollo-orange?style=for-the-badge)
 
@@ -127,13 +127,12 @@ flowchart TD
 
     BL --> DAL
 
-    subgraph DAL["🗃️ Capa de Persistencia (Sequelize)"]
-        Models["📦 Models ORM"]
-        Migrations["🔄 Migrations"]
+    subgraph DAL["🗃️ Capa de Persistencia (Mongoose)"]
+        Models["📦 Schemas / Models"]
         Seeders["🌱 Seeders"]
     end
 
-    DAL -->|SQL| DB[(🐘 PostgreSQL)]
+    DAL -->|NoSQL| DB[(🍃 MongoDB)]
 ```
 
 ### Descripción de Capas
@@ -143,7 +142,7 @@ flowchart TD
 | **Presentación** | Renderizado de vistas, manejo de estado local y comunicación con la API | React 18, Vite, CSS-in-JS |
 | **API / Gateway** | Enrutamiento, autenticación, autorización y validación de entrada | Express 4, JWT, express-validator |
 | **Lógica de Negocio** | Reglas del dominio, cálculo de tarifas, transiciones de estado y eventos | Node.js 20, servicios propios |
-| **Persistencia** | Mapeo objeto-relacional, migraciones y consultas a la base de datos | Sequelize 6, PostgreSQL |
+| **Persistencia** | Mapeo objeto-documento, schemas y consultas a la base de datos | Mongoose 7, MongoDB |
 
 ### Patrones de Diseño GoF
 
@@ -164,7 +163,7 @@ El sistema está documentado siguiendo el modelo C4 (Simon Brown). Los diagramas
 | Nivel | Nombre | Descripción |
 |---|---|---|
 | **C1** | Contexto | Muestra el sistema en relación con los usuarios (Cliente, Empleado, Administrador) y sistemas externos |
-| **C2** | Contenedores | Detalla el Frontend SPA, la API REST y la base de datos PostgreSQL como contenedores independientes |
+| **C2** | Contenedores | Detalla el Frontend SPA, la API REST y la base de datos MongoDB como contenedores independientes |
 | **C3** | Componentes | Desglosa la API en sus capas internas: Router, Middleware, Services y Models |
 | **C4** | Clases | Describe las entidades del dominio, sus atributos, métodos y relaciones en UML |
 
@@ -180,9 +179,9 @@ El sistema está documentado siguiendo el modelo C4 (Simon Brown). Los diagramas
 | **Mantenibilidad** | Bajo acoplamiento entre capas | Arquitectura en capas + inyección implícita de dependencias |
 | **Funcionalidad** | Cobertura de casos de uso definidos | Módulos de auth, vehículos, reservas, clientes y auditoría |
 | **Portabilidad** | Configuración por entorno | Variables de entorno con `.env` para cada despliegue |
-| **Confiabilidad** | Integridad de datos en operaciones críticas | Transacciones Sequelize en reservas y actualizaciones de estado |
+| **Confiabilidad** | Integridad de datos en operaciones críticas | Transacciones Mongoose (sessions) en reservas y actualizaciones de estado |
 | **Usabilidad** | Flujo de reserva sin presencia física | SPA con navegación por roles y feedback visual inmediato |
-| **Rendimiento** | Tiempo de respuesta de la API | Consultas optimizadas con Sequelize, índices en FK y campos de búsqueda frecuente |
+| **Rendimiento** | Tiempo de respuesta de la API | Consultas optimizadas con Mongoose, índices en campos de búsqueda frecuente |
 | **Trazabilidad** | Registro de operaciones críticas | Módulo de auditoría con actor, acción, entidad y timestamp |
 
 ---
@@ -221,10 +220,10 @@ car-rental-saas/
 ├── AlquilerSaaS-back/                # Node.js REST API
 │   ├── src/
 │   │   ├── config/                   # Configuración de BD y variables de entorno
-│   │   │   └── database.js           # Singleton de conexión Sequelize
+│   │   │   └── database.js           # Singleton de conexión Mongoose
 │   │   ├── controllers/              # Controladores HTTP por recurso
 │   │   ├── middlewares/              # Auth JWT, RBAC, manejo de errores
-│   │   ├── models/                   # Modelos Sequelize (ORM)
+│   │   ├── models/                   # Schemas y modelos Mongoose
 │   │   ├── routes/                   # Definición de rutas Express
 │   │   ├── services/                 # Lógica de negocio
 │   │   │   ├── AuthService.js        # Singleton
@@ -234,7 +233,6 @@ car-rental-saas/
 │   │   │   └── ReservationService.js # Observer
 │   │   ├── utils/                    # Helpers y utilidades
 │   │   └── app.js                    # Configuración Express
-│   ├── migrations/                   # Migraciones Sequelize
 │   ├── seeders/                      # Datos iniciales
 │   ├── .env.example
 │   ├── package.json
@@ -260,7 +258,7 @@ car-rental-saas/
 |---|---|---|
 | Node.js | 20.x LTS | [nodejs.org](https://nodejs.org) |
 | npm | 10.x | Incluido con Node.js 20 |
-| PostgreSQL | 15+ | [postgresql.org](https://postgresql.org) |
+| MongoDB | 7.x | [mongodb.com](https://www.mongodb.com) — local o Atlas |
 | Git | 2.40+ | [git-scm.com](https://git-scm.com) |
 
 ---
@@ -288,11 +286,7 @@ Edita el archivo `.env` con tus valores:
 | Variable | Descripción | Ejemplo |
 |---|---|---|
 | `PORT` | Puerto en que corre la API | `3000` |
-| `DB_HOST` | Host de PostgreSQL | `localhost` |
-| `DB_PORT` | Puerto de PostgreSQL | `5432` |
-| `DB_NAME` | Nombre de la base de datos | `car_rental_db` |
-| `DB_USER` | Usuario de PostgreSQL | `postgres` |
-| `DB_PASSWORD` | Contraseña de PostgreSQL | `tu_password` |
+| `MONGODB_URI` | URI de conexión a MongoDB | `mongodb://localhost:27017/car_rental_db` |
 | `JWT_SECRET` | Clave secreta para firmar tokens | `una_clave_larga_y_segura` |
 | `JWT_EXPIRES_IN` | Tiempo de expiración del token | `24h` |
 | `NODE_ENV` | Entorno de ejecución | `development` |
@@ -303,17 +297,11 @@ Edita el archivo `.env` con tus valores:
 npm install
 ```
 
-#### Ejecutar migraciones y seeders
+#### Cargar datos iniciales (seeders)
 
 ```bash
-# Crear la base de datos (si no existe)
-npx sequelize-cli db:create
-
-# Ejecutar migraciones
-npx sequelize-cli db:migrate
-
 # Cargar datos iniciales (roles, admin por defecto, vehículos de prueba)
-npx sequelize-cli db:seed:all
+npm run seed
 ```
 
 #### Iniciar el servidor backend
@@ -459,11 +447,11 @@ npm run dev
 
 | Decisión | Alternativa considerada | Justificación |
 |---|---|---|
-| **Base de datos relacional (PostgreSQL)** | MongoDB (NoSQL) | El dominio tiene relaciones fuertes (cliente → reserva → vehículo → tarifa). La integridad referencial y las transacciones ACID son críticas para consistencia de datos |
+| **Base de datos NoSQL (MongoDB)** | PostgreSQL (relacional) | El esquema de documentos de MongoDB se adapta bien a la variabilidad de atributos por tipo de vehículo. Facilita el despliegue en la nube con Atlas y reduce la fricción de migraciones en etapas tempranas del proyecto |
 | **API REST** | GraphQL | El modelo de recursos es claro y estable. REST reduce la curva de aprendizaje y simplifica el control de acceso por método HTTP en middlewares RBAC |
 | **JWT stateless** | Sesiones en servidor | Facilita el despliegue desacoplado de front y back sin compartir estado. Escala horizontalmente sin infraestructura de sesiones compartidas |
 | **Soft delete** | Hard delete | Preserva la trazabilidad histórica de reservas, clientes y vehículos. Requisito de auditoría y posible recuperación de datos |
-| **Sequelize ORM** | Consultas SQL directas (pg) | Reduce el código repetitivo de acceso a datos, provee migraciones versionadas y facilita cambios de esquema controlados en equipo |
+| **Mongoose ODM** | Driver nativo de MongoDB (mongodb) | Provee validación de schema, middleware (hooks), referencias entre documentos y una API fluida que reduce el código repetitivo de acceso a datos |
 
 ---
 
