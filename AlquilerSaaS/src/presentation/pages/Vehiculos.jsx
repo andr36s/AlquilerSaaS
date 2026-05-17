@@ -14,40 +14,38 @@ const ESTADOS = {
   Inactivo:        { label: 'Inactivo',         color: '#ef4444', puedeReservar: false, siguiente: null },
 };
 
-const TARIFAS = { 'Económico': 45000, 'SUV': 85000, 'Premium': 150000 };
-
 const fmt = (n) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
 const difDias = (a, b) =>
   Math.max(1, Math.ceil((new Date(b) - new Date(a)) / 86400000));
 
-const CATEGORIAS = ['Todos', 'Económico', 'SUV', 'Premium'];
+const CATEGORIAS_FILTRO = ['Todos', 'Económico', 'SUV', 'Premium'];
 
-export function Vehiculos({ vehiculos, usuario, reservas, crearReserva, actualizarVehiculo, avanzarEstado }) {
-  const [filtro, setFiltro]           = useState('Todos');
+export function Vehiculos({ vehiculos, categorias, usuario, crearReserva, actualizarVehiculo, avanzarEstado }) {
+  const [filtro, setFiltro]             = useState('Todos');
   const [modalReserva, setModalReserva] = useState(null);
   const [modalEditar, setModalEditar]   = useState(null);
   const [fechaInicio, setFechaInicio]   = useState('');
   const [fechaFin, setFechaFin]         = useState('');
   const [alert, setAlert]               = useState(null);
 
-  const puedeReservar = usuario.permisos.includes('crear_reserva');
+  const puedeReservar  = usuario.permisos.includes('crear_reserva');
   const puedeGestionar = usuario.permisos.includes('gestionar_vehiculos') || usuario.permisos.includes('*');
 
   const filtrados = vehiculos.filter(
     (v) => v.activo && (filtro === 'Todos' || v.categoria === filtro)
   );
 
-  function handleReservar() {
+  async function handleReservar() {
     if (!fechaInicio || !fechaFin)
       return setAlert({ msg: 'Selecciona fechas', type: 'error' });
     if (new Date(fechaFin) <= new Date(fechaInicio))
       return setAlert({ msg: 'La fecha fin debe ser posterior al inicio', type: 'error' });
     try {
-      crearReserva(modalReserva, usuario, fechaInicio, fechaFin);
-      const dias = difDias(fechaInicio, fechaFin);
-      const total = (TARIFAS[modalReserva.categoria] || 45000) * dias;
+      await crearReserva(modalReserva, usuario, fechaInicio, fechaFin);
+      const dias  = difDias(fechaInicio, fechaFin);
+      const total = (modalReserva.tarifaDiaria || 50000) * dias;
       setModalReserva(null); setFechaInicio(''); setFechaFin('');
       setAlert({ msg: `Reserva creada exitosamente por ${fmt(total)}`, type: 'success' });
     } catch (e) {
@@ -55,10 +53,22 @@ export function Vehiculos({ vehiculos, usuario, reservas, crearReserva, actualiz
     }
   }
 
-  function handleGuardarVehiculo(v) {
-    actualizarVehiculo(v);
-    setModalEditar(null);
-    setAlert({ msg: 'Vehículo actualizado', type: 'success' });
+  async function handleGuardarVehiculo(v) {
+    try {
+      await actualizarVehiculo(v);
+      setModalEditar(null);
+      setAlert({ msg: 'Vehículo actualizado', type: 'success' });
+    } catch (e) {
+      setAlert({ msg: e.message, type: 'error' });
+    }
+  }
+
+  async function handleAvanzarEstado(v) {
+    try {
+      await avanzarEstado(v);
+    } catch (e) {
+      setAlert({ msg: e.message, type: 'error' });
+    }
   }
 
   return (
@@ -68,7 +78,7 @@ export function Vehiculos({ vehiculos, usuario, reservas, crearReserva, actualiz
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <h2 style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800, margin: 0 }}>Catálogo de Vehículos</h2>
         <div style={{ display: 'flex', gap: 8 }}>
-          {CATEGORIAS.map((c) => (
+          {CATEGORIAS_FILTRO.map((c) => (
             <button
               key={c}
               onClick={() => setFiltro(c)}
@@ -102,20 +112,20 @@ export function Vehiculos({ vehiculos, usuario, reservas, crearReserva, actualiz
                 <div style={{ color: '#64748b', fontSize: 13 }}>Placa: {v.placa} · {v.anio}</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <Badge color={estado.color}>{estado.label}</Badge>
+                <Badge color={estado?.color || '#6b7280'}>{estado?.label || v.estado}</Badge>
                 <Badge color="#a78bfa">{v.categoria}</Badge>
               </div>
               <div style={{ color: '#6366f1', fontWeight: 800, fontSize: 15, marginBottom: 14 }}>
-                {fmt(TARIFAS[v.categoria] || 45000)} / día
+                {fmt(v.tarifaDiaria || 50000)} / día
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                {puedeReservar && estado.puedeReservar && (
+                {puedeReservar && estado?.puedeReservar && (
                   <Btn small onClick={() => setModalReserva(v)} style={{ flex: 1 }}>📅 Reservar</Btn>
                 )}
                 {puedeGestionar && (
                   <>
-                    {estado.siguiente && (
-                      <Btn small variant="ghost" onClick={() => avanzarEstado(v.id)}>→ Estado</Btn>
+                    {estado?.siguiente && (
+                      <Btn small variant="ghost" onClick={() => handleAvanzarEstado(v)}>→ Estado</Btn>
                     )}
                     <Btn small variant="ghost" onClick={() => setModalEditar(v)}>✏️</Btn>
                   </>
@@ -135,7 +145,7 @@ export function Vehiculos({ vehiculos, usuario, reservas, crearReserva, actualiz
               </div>
               {fechaInicio && fechaFin && new Date(fechaFin) > new Date(fechaInicio) && (
                 <div style={{ color: '#22c55e', fontSize: 18, fontWeight: 800, marginTop: 8 }}>
-                  Total: {fmt((TARIFAS[modalReserva.categoria] || 45000) * difDias(fechaInicio, fechaFin))}
+                  Total: {fmt((modalReserva.tarifaDiaria || 50000) * difDias(fechaInicio, fechaFin))}
                   <span style={{ color: '#64748b', fontSize: 13, fontWeight: 400 }}>
                     {' '}({difDias(fechaInicio, fechaFin)} días)
                   </span>
@@ -163,6 +173,7 @@ export function Vehiculos({ vehiculos, usuario, reservas, crearReserva, actualiz
       {modalEditar && (
         <ModalEditarVehiculo
           vehiculo={modalEditar}
+          categorias={categorias}
           onClose={() => setModalEditar(null)}
           onSave={handleGuardarVehiculo}
         />
@@ -171,16 +182,26 @@ export function Vehiculos({ vehiculos, usuario, reservas, crearReserva, actualiz
   );
 }
 
-function ModalEditarVehiculo({ vehiculo, onClose, onSave }) {
+function ModalEditarVehiculo({ vehiculo, categorias, onClose, onSave }) {
   const [form, setForm] = useState({ ...vehiculo });
+
+  function handleCategoriaChange(e) {
+    const nombre = e.target.value;
+    const cat = categorias.find((c) => c.nombre === nombre);
+    setForm((p) => ({ ...p, categoria: nombre, categoriaId: cat?.id ?? p.categoriaId }));
+  }
+
   return (
     <Modal title="Editar Vehículo" onClose={onClose}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <Input label="Marca"  value={form.marca}  onChange={(e) => setForm((p) => ({ ...p, marca:  e.target.value }))} />
         <Input label="Modelo" value={form.modelo} onChange={(e) => setForm((p) => ({ ...p, modelo: e.target.value }))} />
         <Input label="Año" type="number" value={form.anio} onChange={(e) => setForm((p) => ({ ...p, anio: +e.target.value }))} />
-        <Select label="Categoría" value={form.categoria} onChange={(e) => setForm((p) => ({ ...p, categoria: e.target.value }))}>
-          {['Económico', 'SUV', 'Premium'].map((c) => <option key={c}>{c}</option>)}
+        <Select label="Categoría" value={form.categoria} onChange={handleCategoriaChange}>
+          {categorias.length > 0
+            ? categorias.map((c) => <option key={c.id} value={c.nombre}>{c.nombre}</option>)
+            : ['Económico', 'SUV', 'Premium'].map((c) => <option key={c}>{c}</option>)
+          }
         </Select>
         <div style={{ display: 'flex', gap: 10 }}>
           <Btn onClick={() => onSave(form)} style={{ flex: 1 }}>Guardar</Btn>

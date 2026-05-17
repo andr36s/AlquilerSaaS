@@ -12,14 +12,18 @@ const difDias = (a, b) =>
 
 const ESTADO_COLOR = { Activa: '#22c55e', Cancelada: '#ef4444', Completada: '#6366f1' };
 
-export function MisReservas({ usuario, reservas, vehiculos, cancelarReserva }) {
+export function MisReservas({ usuario, reservas, cancelarReserva }) {
   const [alert, setAlert] = useState(null);
 
   const misReservas = reservas.filter((r) => r.clienteId === usuario.id);
 
-  function handleCancelar(r) {
-    cancelarReserva(r.id, usuario);
-    setAlert({ msg: 'Reserva cancelada', type: 'info' });
+  async function handleCancelar(r) {
+    try {
+      await cancelarReserva(r.id, usuario);
+      setAlert({ msg: 'Reserva cancelada', type: 'info' });
+    } catch (e) {
+      setAlert({ msg: e.message, type: 'error' });
+    }
   }
 
   return (
@@ -36,7 +40,7 @@ export function MisReservas({ usuario, reservas, vehiculos, cancelarReserva }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {misReservas.map((r) => {
-            const v = vehiculos.find((x) => x.id === r.vehiculoId);
+            const v = r.vehiculo;
             return (
               <Card key={r.id}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>

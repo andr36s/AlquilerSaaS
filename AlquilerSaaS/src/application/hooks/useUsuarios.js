@@ -1,17 +1,25 @@
-import { useState } from 'react';
-import { usuarioRepository } from '../../infrastructure/repositories/usuarioRepository';
-import { usuarioService } from '../services/usuarioService';
+import { useState, useEffect } from 'react';
+import { usuariosApi } from '../../infrastructure/api/usuarios.api';
 
-export function useUsuarios() {
-  const [usuarios, setUsuarios] = useState(usuarioRepository.getInitialData());
+export function useUsuarios(authenticated) {
+  const [usuarios, setUsuarios] = useState([]);
 
-  function getClientes() {
-    return usuarioService.getClientes(usuarios);
+  async function refetch() {
+    try {
+      const [clientes, empleados] = await Promise.all([
+        usuariosApi.getClientes(),
+        usuariosApi.getEmpleados(),
+      ]);
+      setUsuarios([...clientes, ...empleados]);
+    } catch (e) {
+      console.error('[useUsuarios]', e.message);
+    }
   }
 
-  function getEmpleados() {
-    return usuarioService.getEmpleados(usuarios);
-  }
+  useEffect(() => {
+    if (authenticated) refetch();
+    else setUsuarios([]);
+  }, [authenticated]);
 
-  return { usuarios, setUsuarios, getClientes, getEmpleados };
+  return { usuarios, refetch };
 }

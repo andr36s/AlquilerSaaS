@@ -8,20 +8,32 @@ import { Input } from '../components/ui/Input';
 
 const FORM_INICIAL = { nombre: '', correo: '', documento: '', telefono: '', direccion: '', clave: '' };
 
-export function Clientes({ usuarios, sesion, crearCliente, toggleActivo }) {
+export function Clientes({ usuarios, crearCliente, toggleActivo }) {
   const [modal, setModal]   = useState(false);
   const [form, setForm]     = useState(FORM_INICIAL);
   const [alert, setAlert]   = useState(null);
 
   const clientes = usuarios.filter((u) => u.tipo === 'Cliente');
 
-  function guardar() {
+  async function guardar() {
     if (!form.nombre || !form.correo || !form.clave)
       return setAlert({ msg: 'Nombre, correo y clave son requeridos', type: 'error' });
-    crearCliente(form, sesion);
-    setModal(false);
-    setForm(FORM_INICIAL);
-    setAlert({ msg: 'Cliente registrado exitosamente', type: 'success' });
+    try {
+      await crearCliente(form);
+      setModal(false);
+      setForm(FORM_INICIAL);
+      setAlert({ msg: 'Cliente registrado exitosamente', type: 'success' });
+    } catch (e) {
+      setAlert({ msg: e.message, type: 'error' });
+    }
+  }
+
+  async function handleToggle(c) {
+    try {
+      await toggleActivo(c);
+    } catch (e) {
+      setAlert({ msg: e.message, type: 'error' });
+    }
   }
 
   return (
@@ -46,7 +58,7 @@ export function Clientes({ usuarios, sesion, crearCliente, toggleActivo }) {
               <Badge color={c.activo ? '#22c55e' : '#ef4444'}>{c.activo ? 'Activo' : 'Inactivo'}</Badge>
             </div>
             <div style={{ marginTop: 14 }}>
-              <Btn small variant={c.activo ? 'danger' : 'success'} onClick={() => toggleActivo(c, sesion)}>
+              <Btn small variant={c.activo ? 'danger' : 'success'} onClick={() => handleToggle(c)}>
                 {c.activo ? 'Desactivar' : 'Activar'}
               </Btn>
             </div>

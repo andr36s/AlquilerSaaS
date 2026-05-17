@@ -9,15 +9,19 @@ const DEMOS = [
   { label: 'Cliente',  correo: 'cliente@sav.co',  clave: 'cli123' },
 ];
 
-export function Login({ onLogin, usuarios }) {
-  const [correo, setCorreo] = useState('');
-  const [clave, setClave]   = useState('');
-  const [error, setError]   = useState('');
+export function Login({ onLogin }) {
+  const [correo, setCorreo]   = useState('');
+  const [clave, setClave]     = useState('');
+  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
 
-  function handleLogin() {
-    const ok = onLogin(correo, clave, usuarios);
+  async function handleLogin() {
+    if (!correo || !clave) return setError('Ingresa correo y contraseña');
+    setLoading(true);
+    setError('');
+    const ok = await onLogin(correo, clave);
+    setLoading(false);
     if (!ok) setError('Credenciales incorrectas o usuario inactivo');
-    else setError('');
   }
 
   return (
@@ -68,7 +72,9 @@ export function Login({ onLogin, usuarios }) {
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
             />
             {error && <p style={{ color: '#ef4444', fontSize: 13, margin: 0 }}>{error}</p>}
-            <Btn onClick={handleLogin} style={{ marginTop: 8 }}>Iniciar Sesión</Btn>
+            <Btn onClick={handleLogin} disabled={loading} style={{ marginTop: 8 }}>
+              {loading ? 'Ingresando...' : 'Iniciar Sesión'}
+            </Btn>
           </div>
 
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.08)' }}>

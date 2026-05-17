@@ -4,14 +4,14 @@ import { Badge } from '../components/ui/Badge';
 const ACCION_COLOR = {
   CREAR:      '#22c55e',
   CANCELAR:   '#ef4444',
-  COMPLETADA: '#6366f1',
+  COMPLETAR:  '#6366f1',
   DESACTIVAR: '#f59e0b',
   ACTIVAR:    '#22c55e',
+  ELIMINAR:   '#ef4444',
+  ACTUALIZAR: '#3b82f6',
 };
 
 export function Auditoria({ auditoria }) {
-  const registros = [...auditoria].reverse();
-
   return (
     <div>
       <h2 style={{ color: '#f1f5f9', fontSize: 22, fontWeight: 800, margin: '0 0 20px' }}>
@@ -19,7 +19,7 @@ export function Auditoria({ auditoria }) {
       </h2>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {registros.map((a) => (
+        {auditoria.map((a) => (
           <Card key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
             <Badge color={ACCION_COLOR[a.accion] || '#6b7280'}>{a.accion}</Badge>
             <div style={{ flex: 1 }}>

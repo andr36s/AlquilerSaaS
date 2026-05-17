@@ -1,17 +1,55 @@
-import { useState } from 'react';
-import { vehiculoRepository } from '../../infrastructure/repositories/vehiculoRepository';
-import { vehiculoService } from '../services/vehiculoService';
+import { useState, useEffect, useMemo } from 'react';
+import { vehiculosApi } from '../../infrastructure/api/vehiculos.api';
 
-export function useVehiculos() {
-  const [vehiculos, setVehiculos] = useState(vehiculoRepository.getInitialData());
+const TRANSICION = {
+  Disponible:      'Reservado',
+  Reservado:       'EnMantenimiento',
+  EnMantenimiento: 'Disponible',
+};
 
-  function actualizarVehiculo(vehiculo) {
-    setVehiculos((prev) => vehiculoService.actualizarVehiculo(prev, vehiculo));
+export function useVehiculos(authenticated) {
+  const [vehiculos, setVehiculos] = useState([]);
+
+  async function refetch() {
+    try {
+      setVehiculos(await vehiculosApi.getAll());
+    } catch (e) {
+      console.error('[useVehiculos]', e.message);
+    }
   }
 
-  function avanzarEstado(vehiculoId) {
-    setVehiculos((prev) => vehiculoService.avanzarEstado(prev, vehiculoId));
+  useEffect(() => {
+    if (authenticated) refetch();
+    else setVehiculos([]);
+  }, [authenticated]);
+
+  const categorias = useMemo(() => {
+    const seen = new Set();
+    return vehiculos.reduce((acc, v) => {
+      if (!seen.has(v.categoriaId)) {
+        seen.add(v.categoriaId);
+        acc.push({ id: v.categoriaId, nombre: v.categoria });
+      }
+      return acc;
+    }, []);
+  }, [vehiculos]);
+
+  async function actualizarVehiculo(datos) {
+    await vehiculosApi.update(datos.id, {
+      marca:       datos.marca,
+      modelo:      datos.modelo,
+      anio:        datos.anio,
+      categoriaId: datos.categoriaId,
+    });
+    await refetch();
   }
 
-  return { vehiculos, setVehiculos, actualizarVehiculo, avanzarEstado };
+  async function avanzarEstado(vehiculo) {
+    const siguiente = TRANSICION[vehiculo.estado];
+    if (!siguiente) return;
+    await vehiculosApi.cambiarEstado(vehiculo.id, siguiente);
+    await refetch();
+  }
+
+  return { vehiculos, categorias, actualizarVehiculo, avanzarEstado, refetch };
 }

@@ -8,20 +8,32 @@ import { Input } from '../components/ui/Input';
 
 const FORM_INICIAL = { nombre: '', correo: '', documento: '', cargo: '', clave: '' };
 
-export function Empleados({ usuarios, sesion, crearEmpleado, toggleActivo }) {
+export function Empleados({ usuarios, crearEmpleado, toggleActivo }) {
   const [modal, setModal] = useState(false);
   const [form, setForm]   = useState(FORM_INICIAL);
   const [alert, setAlert] = useState(null);
 
   const empleados = usuarios.filter((u) => u.tipo === 'Empleado');
 
-  function guardar() {
+  async function guardar() {
     if (!form.nombre || !form.correo || !form.clave)
       return setAlert({ msg: 'Nombre, correo y clave son requeridos', type: 'error' });
-    crearEmpleado(form, sesion);
-    setModal(false);
-    setForm(FORM_INICIAL);
-    setAlert({ msg: 'Empleado registrado', type: 'success' });
+    try {
+      await crearEmpleado(form);
+      setModal(false);
+      setForm(FORM_INICIAL);
+      setAlert({ msg: 'Empleado registrado', type: 'success' });
+    } catch (e) {
+      setAlert({ msg: e.message, type: 'error' });
+    }
+  }
+
+  async function handleToggle(e) {
+    try {
+      await toggleActivo(e);
+    } catch (err) {
+      setAlert({ msg: err.message, type: 'error' });
+    }
   }
 
   return (
@@ -34,20 +46,20 @@ export function Empleados({ usuarios, sesion, crearEmpleado, toggleActivo }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
-        {empleados.map((e) => (
-          <Card key={e.id}>
+        {empleados.map((emp) => (
+          <Card key={emp.id}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{e.nombre}</div>
-                <div style={{ color: '#64748b', fontSize: 12 }}>📧 {e.correo}</div>
-                <div style={{ color: '#64748b', fontSize: 12 }}>🪪 {e.documento}</div>
-                {e.cargo && <div style={{ color: '#f59e0b', fontSize: 12, marginTop: 4 }}>💼 {e.cargo}</div>}
+                <div style={{ color: '#f1f5f9', fontWeight: 700, marginBottom: 4 }}>{emp.nombre}</div>
+                <div style={{ color: '#64748b', fontSize: 12 }}>📧 {emp.correo}</div>
+                <div style={{ color: '#64748b', fontSize: 12 }}>🪪 {emp.documento}</div>
+                {emp.cargo && <div style={{ color: '#f59e0b', fontSize: 12, marginTop: 4 }}>💼 {emp.cargo}</div>}
               </div>
-              <Badge color={e.activo ? '#22c55e' : '#ef4444'}>{e.activo ? 'Activo' : 'Inactivo'}</Badge>
+              <Badge color={emp.activo ? '#22c55e' : '#ef4444'}>{emp.activo ? 'Activo' : 'Inactivo'}</Badge>
             </div>
             <div style={{ marginTop: 14 }}>
-              <Btn small variant={e.activo ? 'danger' : 'success'} onClick={() => toggleActivo(e, sesion)}>
-                {e.activo ? 'Desactivar' : 'Activar'}
+              <Btn small variant={emp.activo ? 'danger' : 'success'} onClick={() => handleToggle(emp)}>
+                {emp.activo ? 'Desactivar' : 'Activar'}
               </Btn>
             </div>
           </Card>

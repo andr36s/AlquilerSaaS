@@ -12,6 +12,7 @@ export function AppRouter({
   usuario,
   onLogout,
   vehiculos,
+  categorias,
   actualizarVehiculo,
   avanzarEstado,
   reservas,
@@ -26,8 +27,6 @@ export function AppRouter({
 }) {
   const [seccion, setSeccion] = useState('dashboard');
 
-  const sesion = usuario;
-
   const PAGES = {
     dashboard: (
       <Dashboard
@@ -40,6 +39,7 @@ export function AppRouter({
     vehiculos: (
       <Vehiculos
         vehiculos={vehiculos}
+        categorias={categorias}
         usuario={usuario}
         reservas={reservas}
         crearReserva={crearReserva}
@@ -51,15 +51,12 @@ export function AppRouter({
       <MisReservas
         usuario={usuario}
         reservas={reservas}
-        vehiculos={vehiculos}
         cancelarReserva={cancelarReserva}
       />
     ),
     gestionar_reservas: (
       <GestionReservas
         reservas={reservas}
-        vehiculos={vehiculos}
-        usuarios={usuarios}
         cancelarReserva={cancelarReserva}
         completarReserva={completarReserva}
         usuario={usuario}
@@ -68,7 +65,6 @@ export function AppRouter({
     clientes: (
       <Clientes
         usuarios={usuarios}
-        sesion={sesion}
         crearCliente={crearCliente}
         toggleActivo={toggleActivo}
       />
@@ -76,7 +72,6 @@ export function AppRouter({
     empleados: (
       <Empleados
         usuarios={usuarios}
-        sesion={sesion}
         crearEmpleado={crearEmpleado}
         toggleActivo={toggleActivo}
       />

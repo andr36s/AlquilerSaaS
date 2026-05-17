@@ -1,70 +1,61 @@
-import { useState } from 'react';
-import { useAuth }     from './application/hooks/useAuth';
+import { useAuth }      from './application/hooks/useAuth';
 import { useVehiculos } from './application/hooks/useVehiculos';
 import { useReservas }  from './application/hooks/useReservas';
 import { useUsuarios }  from './application/hooks/useUsuarios';
-import { auditoriaRepository } from './infrastructure/repositories/auditoriaRepository';
-import { reservationService }  from './application/services/reservationService';
-import { usuarioService }      from './application/services/usuarioService';
-import { AppRouter } from './presentation/router/AppRouter';
-import { Login }     from './presentation/pages/Login';
+import { useAuditoria } from './application/hooks/useAuditoria';
+import { reservasApi }  from './infrastructure/api/reservas.api';
+import { usuariosApi }  from './infrastructure/api/usuarios.api';
+import { AppRouter }    from './presentation/router/AppRouter';
+import { Login }        from './presentation/pages/Login';
 
 export default function App() {
   const { usuario, login, logout } = useAuth();
-  const { vehiculos, setVehiculos, actualizarVehiculo, avanzarEstado } = useVehiculos();
-  const { reservas, setReservas } = useReservas();
-  const { usuarios, setUsuarios } = useUsuarios();
-  const [auditoria, setAuditoria] = useState(auditoriaRepository.getInitialData());
+  const authenticated = !!usuario;
 
-  // ── Coordinación cross-domain: reservas ──────────────────────
-  function crearReserva(vehiculo, usr, fechaInicio, fechaFin) {
-    const result = reservationService.crearReserva({
-      reservas, vehiculos, auditoria, vehiculo, usuario: usr, fechaInicio, fechaFin,
-    });
-    setReservas(result.reservas);
-    setVehiculos(result.vehiculos);
-    setAuditoria(result.auditoria);
+  const { vehiculos, categorias, actualizarVehiculo, avanzarEstado, refetch: refetchVehiculos } = useVehiculos(authenticated);
+  const { reservas,  refetch: refetchReservas  } = useReservas(authenticated);
+  const { usuarios,  refetch: refetchUsuarios  } = useUsuarios(authenticated);
+  const { auditoria, refetch: refetchAuditoria } = useAuditoria(authenticated);
+
+  // ── Coordinación cross-domain: reservas ──────────────────────────────────
+  async function crearReserva(vehiculo, _usr, fechaInicio, fechaFin) {
+    await reservasApi.crear({ vehiculoId: vehiculo.id, fechaInicio, fechaFin });
+    await Promise.all([refetchReservas(), refetchVehiculos(), refetchAuditoria()]);
   }
 
-  function cancelarReserva(reservaId, usr) {
-    const result = reservationService.cancelarReserva({
-      reservas, vehiculos, auditoria, reservaId, usuario: usr,
-    });
-    setReservas(result.reservas);
-    setVehiculos(result.vehiculos);
-    setAuditoria(result.auditoria);
+  async function cancelarReserva(reservaId, _usr) {
+    await reservasApi.cambiarEstado(reservaId, 'Cancelada');
+    await Promise.all([refetchReservas(), refetchVehiculos(), refetchAuditoria()]);
   }
 
-  function completarReserva(reservaId, usr) {
-    const result = reservationService.completarReserva({
-      reservas, vehiculos, auditoria, reservaId, usuario: usr,
-    });
-    setReservas(result.reservas);
-    setVehiculos(result.vehiculos);
-    setAuditoria(result.auditoria);
+  async function completarReserva(reservaId, _usr) {
+    await reservasApi.cambiarEstado(reservaId, 'Completada');
+    await Promise.all([refetchReservas(), refetchVehiculos(), refetchAuditoria()]);
   }
 
-  // ── Coordinación cross-domain: usuarios ──────────────────────
-  function crearCliente(datos, sesion) {
-    const result = usuarioService.crearCliente({ usuarios, auditoria, datos, sesion });
-    setUsuarios(result.usuarios);
-    setAuditoria(result.auditoria);
+  // ── Coordinación cross-domain: usuarios ──────────────────────────────────
+  async function crearCliente(datos) {
+    await usuariosApi.createCliente(datos);
+    await Promise.all([refetchUsuarios(), refetchAuditoria()]);
   }
 
-  function crearEmpleado(datos, sesion) {
-    const result = usuarioService.crearEmpleado({ usuarios, auditoria, datos, sesion });
-    setUsuarios(result.usuarios);
-    setAuditoria(result.auditoria);
+  async function crearEmpleado(datos) {
+    await usuariosApi.createEmpleado(datos);
+    await Promise.all([refetchUsuarios(), refetchAuditoria()]);
   }
 
-  function toggleActivo(usr, sesion) {
-    const result = usuarioService.toggleActivo({ usuarios, auditoria, usuario: usr, sesion });
-    setUsuarios(result.usuarios);
-    setAuditoria(result.auditoria);
+  async function toggleActivo(usr) {
+    const patch = { activo: !usr.activo };
+    if (usr.tipo === 'Cliente') {
+      await usuariosApi.updateCliente(usr.id, patch);
+    } else {
+      await usuariosApi.updateEmpleado(usr.id, patch);
+    }
+    await Promise.all([refetchUsuarios(), refetchAuditoria()]);
   }
 
   if (!usuario) {
-    return <Login onLogin={login} usuarios={usuarios} />;
+    return <Login onLogin={login} />;
   }
 
   return (
@@ -72,6 +63,7 @@ export default function App() {
       usuario={usuario}
       onLogout={logout}
       vehiculos={vehiculos}
+      categorias={categorias}
       actualizarVehiculo={actualizarVehiculo}
       avanzarEstado={avanzarEstado}
       reservas={reservas}

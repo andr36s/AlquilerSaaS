@@ -9,17 +9,25 @@ const fmt = (n) =>
 
 const ESTADO_COLOR = { Activa: '#22c55e', Cancelada: '#ef4444', Completada: '#6366f1' };
 
-export function GestionReservas({ reservas, vehiculos, usuarios, cancelarReserva, completarReserva, usuario }) {
+export function GestionReservas({ reservas, cancelarReserva, completarReserva, usuario }) {
   const [alert, setAlert] = useState(null);
 
-  function handleCompletar(r) {
-    completarReserva(r.id, usuario);
-    setAlert({ msg: 'Reserva completada', type: 'success' });
+  async function handleCompletar(r) {
+    try {
+      await completarReserva(r.id, usuario);
+      setAlert({ msg: 'Reserva completada', type: 'success' });
+    } catch (e) {
+      setAlert({ msg: e.message, type: 'error' });
+    }
   }
 
-  function handleCancelar(r) {
-    cancelarReserva(r.id, usuario);
-    setAlert({ msg: 'Reserva cancelada', type: 'info' });
+  async function handleCancelar(r) {
+    try {
+      await cancelarReserva(r.id, usuario);
+      setAlert({ msg: 'Reserva cancelada', type: 'info' });
+    } catch (e) {
+      setAlert({ msg: e.message, type: 'error' });
+    }
   }
 
   return (
@@ -29,8 +37,8 @@ export function GestionReservas({ reservas, vehiculos, usuarios, cancelarReserva
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {reservas.map((r) => {
-          const v = vehiculos.find((x) => x.id === r.vehiculoId);
-          const c = usuarios.find((x) => x.id === r.clienteId);
+          const v = r.vehiculo;
+          const c = r.cliente;
           return (
             <Card key={r.id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -39,7 +47,7 @@ export function GestionReservas({ reservas, vehiculos, usuarios, cancelarReserva
                     <span style={{ fontSize: 22 }}>{v?.imagen || '🚗'}</span>
                     <div>
                       <div style={{ color: '#f1f5f9', fontWeight: 700 }}>
-                        #{r.id} — {v ? `${v.marca} ${v.modelo}` : 'Vehículo'}
+                        {v ? `${v.marca} ${v.modelo}` : 'Vehículo'}
                       </div>
                       <div style={{ color: '#64748b', fontSize: 12 }}>Cliente: {c?.nombre || 'N/A'}</div>
                     </div>
